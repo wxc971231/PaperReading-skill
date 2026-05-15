@@ -11,7 +11,12 @@
 
 # Keep curated example articles.
 !output/
-output/*
+output/**
+!output/Diffusion Beats Autoregressive in Data-Constrained Settings/
+!output/Diffusion Beats Autoregressive in Data-Constrained Settings/*.md
+!output/Diffusion Beats Autoregressive in Data-Constrained Settings/img/
+!output/Diffusion Beats Autoregressive in Data-Constrained Settings/img/audit.md
+!output/Diffusion Beats Autoregressive in Data-Constrained Settings/img/img_*.png
 
 # Ignore Python caches even inside tracked skill folders.
 skills/**/__pycache__/

@@ -1,0 +1,28 @@
+# Ignore everything by default.
+*
+
+# Keep repository metadata files.
+!.gitignore
+!README.md
+
+# Keep reusable Codex skills.
+!skills/
+!skills/**
+
+# Keep curated example articles.
+!output/
+output/*
+
+# Ignore Python caches even inside tracked skill folders.
+skills/**/__pycache__/
+skills/**/*.py[cod]
+
+# Ignore common local/generated outputs explicitly for readability.
+.tools/
+OptMATH A Scalable Bidirectional Data Synthesis Framework for Optimization Modeling/
+output/OptMATH A Scalable Bidirectional Data Synthesis Framework for Optimization Modeling/
+*.pdf
+*.zip
+*.log
+*.tmp
+*.bak

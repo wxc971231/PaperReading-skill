@@ -1,0 +1,7 @@
+interface:
+  display_name: "Paper Blog Writer"
+  short_description: "Draft paper notes with figures and code."
+  default_prompt: "Use $PaperReading to turn this paper link or PDF into a Chinese Markdown paper-interpretation folder with figures, OpenReview notes, and code analysis when available."
+
+policy:
+  allow_implicit_invocation: true

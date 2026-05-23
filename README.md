@@ -1,6 +1,6 @@
 # PaperReading
 
-这个仓库用于存放我的 Codex 论文阅读工作流 skill：`PaperReading`。给定论文标题、链接、arXiv/OpenReview 页面、DOI 或本地 PDF，让 Codex 自动完成论文检索、PDF 下载、图表抽取、代码仓库分析，并生成一份适合 Typora 阅读和后续整理的中文论文解读 Markdown。
+这个仓库用于存放我的 Codex 论文阅读工作流 skill：`PaperReading`。给定论文标题、链接、arXiv/OpenReview 页面、DOI 或本地 PDF，让 Codex 自动完成论文检索、PDF 下载、图表抽取、代码仓库分析，并生成一份适合 Typora 阅读和后续整理的中文论文解读 Markdown，同时渲染一份内容一致、图文并茂的同名文章 PDF。
 
 ## 目录结构
 
@@ -9,7 +9,7 @@ skills/
   PaperReading/
     SKILL.md                 # skill 主说明
     references/              # 写作风格、输出规范、深度要求
-    scripts/                 # PDF 图表检测、抽取、裁剪脚本
+    scripts/                 # PDF 图表检测、抽取、裁剪和 Markdown 渲染脚本
     agents/                  # 可选 agent 配置
 ```
 
@@ -18,6 +18,7 @@ skills/
 - 搜索论文的最新公开版本，优先使用 arXiv 最新版本、PMLR/会议正式版、OpenReview 或作者主页中更新的 PDF。
 - 在项目根目录的 `output/` 下创建以论文标题命名的输出文件夹。
 - 保存原始论文为 `paper.pdf`。
+- 生成同名文章 PDF，例如 `<论文标题>.pdf`，内容来自最终 Markdown，和原论文 `paper.pdf` 区分开。
 - 自动抽取论文中的图、表，并由 Codex 自主完成完整性审核与迭代重裁，保证最终使用的图片不缺轴标签、图例、表头、关键行列或多面板内容。
 - 搜索 OpenReview，若有公开评审，则在文章中总结 reviewer 关注点和作者 rebuttal；若没有公开记录，也会在固定信息块中标明未找到。
 - 搜索官方代码仓库，若存在则克隆到输出文件夹的 `code/` 目录，并在文章中写代码分析。
@@ -44,6 +45,7 @@ skills/
        img/
        code/
        OptMATH A Scalable Bidirectional Data Synthesis Framework for Optimization Modeling.md
+       OptMATH A Scalable Bidirectional Data Synthesis Framework for Optimization Modeling.pdf
    ```
 
 4. **抽取和审核图表**
@@ -68,9 +70,19 @@ skills/
 
    不包含 Hexo front matter、HTML 图片标签或绝对博客路径。
 
-8. **最终检查**
+8. **生成文章 PDF**
 
-   Codex 会检查输出目录、PDF、图片引用、代码目录、OpenReview 搜索结果、Markdown 格式和最终图表完整性。
+   Markdown 定稿后，skill 会用 `scripts/render_markdown_pdf.py` 生成同名 PDF：
+
+   ```text
+   output/<论文标题>/<论文标题>.pdf
+   ```
+
+   这个 PDF 是由 Markdown 渲染得到的阅读版 PDF，和原论文 `paper.pdf` 区分开。默认渲染链路是 Pandoc + Typst，并使用 `.tools/md-pdf/fonts` 中的 Noto CJK 字体；它应包含正文、表格、代码块、已渲染公式和所有引用图片。只有缺少 Pandoc/Typst 时才退回到轻量 PyMuPDF 渲染器。
+
+9. **最终检查**
+
+   Codex 会检查输出目录、原论文 PDF、文章 PDF、图片引用、代码目录、OpenReview 搜索结果、Markdown 格式和最终图表完整性。
 
 ## 生成文章格式
 
@@ -80,6 +92,7 @@ skills/
 output/
   <论文标题>/
     <论文标题>.md
+    <论文标题>.pdf
     paper.pdf
     img/
       img_001.png
@@ -160,6 +173,7 @@ Markdown 文件直接面向 Typora 阅读，不包含 Hexo、Jekyll、YAML front
 生成完成后，Codex 会运行文章目录验证脚本：
 
 ```bash
+python skills/PaperReading/scripts/render_markdown_pdf.py output/<论文标题>/<论文标题>.md
 python skills/PaperReading/scripts/verify_article_folder.py output/<论文标题>
 ```
 
@@ -173,10 +187,13 @@ python skills/PaperReading/scripts/verify_article_folder.py output/<论文标题
 
 Codex 会读取 `skills/PaperReading/SKILL.md` 和相关脚本，识别需要的工具，并按当前机器环境安装。常用依赖包括：
 
-- Python 包：`pymupdf`、`pillow`、`pdfplumber`、`camelot-py`、`tabula-py`
+- Python 包：`pymupdf`、`pillow`、`markdown-it-py`、`pdfplumber`、`camelot-py`、`tabula-py`
 - Java 环境：OpenJDK
 - PDF 图表工具：PDFFigures2
+- Markdown 到 PDF：`pandoc`、`typst`、`font-ttf-noto-cjk`
 - 可选工具：Ghostscript、Marker、Docling
+
+如果 conda base 环境因为依赖冲突不能直接安装 Pandoc/Typst，可把可执行文件放在仓库根目录的 `.tools/md-pdf/bin/`，把 CJK 字体放在 `.tools/md-pdf/fonts/`。`render_markdown_pdf.py` 会自动发现这些本地工具和字体。
 
 在 Windows + Conda 环境中，推荐让 Codex 自己完成安装和验证，因为不同工具对 Python 版本、Java、Ghostscript、OpenCV 的要求不完全一致。安装后可以让 Codex 运行一次导入检查和 PDFFigures2 命令检查，确认图表抽取链路可用。
 
@@ -186,6 +203,7 @@ Codex 会读取 `skills/PaperReading/SKILL.md` 和相关脚本，识别需要的
 - `detect_pdf_visuals.py`：检测 PDF 中的图表候选并生成 contact sheet。
 - `crop_pdf_regions.py`：从 PDF 页面中高 DPI 裁剪最终图表。
 - `extract_pdf_figures.py`：抽取嵌入图像或渲染页面作为 fallback。
+- `render_markdown_pdf.py`：把最终 Markdown 渲染为同名文章 PDF。
 - `verify_article_folder.py`：检查最终文章目录结构、图片引用和常见格式问题。
 
 ## 使用示例
@@ -194,4 +212,4 @@ Codex 会读取 `skills/PaperReading/SKILL.md` 和相关脚本，识别需要的
 现在用 PaperReading skill 处理一下 OptMATH: A Scalable Bidirectional Data Synthesis Framework for Optimization Modeling 这篇文章。
 ```
 
-Codex 会自动完成检索、下载、抽图、读论文、读代码、写文章和检查产物。
+Codex 会自动完成检索、下载、抽图、读论文、读代码、写文章、渲染文章 PDF 和检查产物。

@@ -1,15 +1,15 @@
 ---
 name: PaperReading
-description: Create Chinese paper-interpretation blog drafts from a paper link, arXiv/OpenReview page, DOI, or PDF. Use when Codex needs to read a research paper and produce a Typora-friendly Markdown article folder containing the article .md file, the original PDF, and an img/ directory of extracted or generated figures in the user's established "论文理解" style.
+description: Create Chinese paper-interpretation blog drafts from a paper link, arXiv/OpenReview page, DOI, or PDF. Use when Codex needs to read a research paper and produce a Typora-friendly Markdown/PDF article folder containing the article .md file, a same-content rendered article PDF, the original paper PDF, and an img/ directory of extracted or generated figures in the user's established "论文理解" style.
 ---
 
 # Paper Blog Writer
 
 ## Overview
 
-Use this skill to turn a research paper into a self-contained Markdown reading-note folder. The output is for Typora-first writing and later conversion by the user's own scripts, so do not create Hexo scaffolding, HTML posts, front matter metadata, or "首发链接".
+Use this skill to turn a research paper into a self-contained Markdown reading-note folder plus a matching rendered article PDF. The Markdown remains the source of truth and must be Typora-friendly; the article PDF is generated from that Markdown after drafting so the user can read/share a figure-rich PDF without running a separate converter. Do not create Hexo scaffolding, HTML posts, front matter metadata, or "首发链接".
 
-Read `references/style-guide.md`, `references/local-density-prompts.md`, and `references/output-contract.md` before writing the article. Use `scripts/resolve_paper_source.py` as a first-pass metadata helper when the input is a title, arXiv id, or arXiv URL, then still compare against conference/OpenReview/project/author pages. Use `scripts/detect_pdf_visuals.py` first when a PDF is available and figures/tables are needed. Use `scripts/extract_pdf_figures.py` for embedded-image/page-render fallback. Use `scripts/crop_pdf_regions.py` for Codex-driven high-DPI correction when automatic candidates are incomplete. Use `scripts/verify_article_folder.py` before finalizing.
+Read `references/style-guide.md`, `references/local-density-prompts.md`, and `references/output-contract.md` before writing the article. Use `scripts/resolve_paper_source.py` as a first-pass metadata helper when the input is a title, arXiv id, or arXiv URL, then still compare against conference/OpenReview/project/author pages. Use `scripts/detect_pdf_visuals.py` first when a PDF is available and figures/tables are needed. Use `scripts/extract_pdf_figures.py` for embedded-image/page-render fallback. Use `scripts/crop_pdf_regions.py` for Codex-driven high-DPI correction when automatic candidates are incomplete. After the Markdown is final, use `scripts/render_markdown_pdf.py` to generate the same-basename article PDF. Use `scripts/verify_article_folder.py` before finalizing.
 Read `references/depth-rubric.md` before drafting; the article must satisfy that depth bar unless the paper is genuinely short.
 When working inside the user's blog/source workspace, inspect the closest existing `论文理解` posts on the same topic before drafting and compare the generated article against them before finishing.
 
@@ -21,6 +21,7 @@ Create one folder per paper under the repository/workspace root's `output/` dire
 output/
   <paper-note-folder>/
     <paper-note-folder>.md
+    <paper-note-folder>.pdf
     paper.pdf
     img/
       img_001.png
@@ -38,7 +39,7 @@ Name the paper-note folder after the paper title, not after a Chinese topic cate
 OptMATH Benchmarking Mathematical Reasoning with Optimization Modeling/
 ```
 
-The Markdown file must be directly openable in Typora. Use relative image paths:
+The Markdown file must be directly openable in Typora. The rendered article PDF must be generated from this Markdown and should contain the same text, headings, code snippets, tables, formulas as text, and all referenced images. Use relative image paths:
 
 ```markdown
 ![在这里插入图片描述](img/img_001.png)
@@ -165,10 +166,24 @@ This skeleton is mandatory. Keep the exact opening metadata keys and numbered to
      - `## 3.1 实验设定`: datasets, unique train/test splits, baselines, model sizes, metrics, training/evaluation protocol, and any fairness controls.
      - `## 3.2 实验结果与分析`: create one `### 3.2.x` subsection per major experiment/result. Each experiment subsection must start with a short statement of the experiment setting (data/model/baseline/metric as relevant), then explain the result and its implication.
 
-5. **Verify**
+5. **Render the article PDF**
+   - After the Markdown and final images are complete, render a same-basename PDF next to the Markdown:
+
+```bash
+python <skill-dir>/scripts/render_markdown_pdf.py output/<paper-note-folder>/<paper-note-folder>.md
+```
+
+   - The expected output is `output/<paper-note-folder>/<paper-note-folder>.pdf`, distinct from the original paper stored as `paper.pdf`.
+   - The renderer prefers Pandoc + Typst, discovers local binaries from `.tools/md-pdf/bin`, and discovers local CJK fonts from `.tools/md-pdf/fonts`. This is the expected path for readable Chinese, proper image sizing, tables, and rendered LaTeX math.
+   - The rendered PDF must be图文并茂 and content-equivalent to the Markdown: all Markdown image references should appear in the PDF, headings and tables should be readable, and formulas should render as math. The PyMuPDF fallback is only acceptable when Pandoc/Typst is unavailable; if it leaves raw LaTeX text or tiny images, install or use the local Pandoc/Typst toolchain and rerender.
+   - Spot-check at least the first page and one image-heavy page of the rendered PDF when possible. If images are missing, broken, oversized, or compressed into unreadable thumbnails, fix the Markdown image paths or rerender.
+   - If PDF rendering fails because `pandoc`, `typst`, `font-ttf-noto-cjk`, `markdown_it`, or PyMuPDF is missing, install the missing package after approval when network access is needed, or place the missing executable/font under `.tools/md-pdf/`, then rerender. Do not finalize without the article PDF unless the user explicitly waives it.
+
+6. **Verify**
    - Confirm the paper-note folder is directly under `<project-root>/output/` and its folder name is the sanitized latest-version paper title.
    - Confirm the PDF and metadata come from the latest public paper version found during search, or explicitly document why a non-latest/user-provided version was used.
    - Confirm the folder has exactly the expected shape.
+   - Confirm the same-basename rendered article PDF exists beside the Markdown and is newer than or as new as the Markdown.
    - Confirm every image reference in the Markdown resolves to an existing file under `img/`.
    - Confirm `img/audit.md` exists when the article references final images, and that every referenced `img/img_*` appears in the audit log.
    - Confirm no Hexo YAML front matter, `/MyBlog/`, raw HTML image tags, or "首发链接" remains.
@@ -187,6 +202,7 @@ This skeleton is mandatory. Keep the exact opening metadata keys and numbered to
      - for same-paper comparisons, new sections may be structurally different, but the main method/experiment coverage should preserve the local article's named mechanisms, formulas, figures, and concrete reviewer controversies.
    - Revise once before finalizing if the comparison shows the generated article is more survey-like, less concrete, or less visually grounded than the local style anchor.
    - If possible, open or render the Markdown preview enough to catch broken paths and obvious formatting issues.
+   - If possible, inspect the rendered article PDF enough to catch missing images, severe pagination problems, unreadable text, or a PDF that does not reflect the latest Markdown.
 
 ## Figure Extraction Script
 
@@ -265,6 +281,21 @@ Before finalizing, run the folder verifier:
 
 ```bash
 python <skill-dir>/scripts/verify_article_folder.py output/<paper-note-folder>
+```
+
+Render the article PDF from the final Markdown:
+
+```bash
+python <skill-dir>/scripts/render_markdown_pdf.py output/<paper-note-folder>/<paper-note-folder>.md
+```
+
+Common options:
+
+```bash
+python <skill-dir>/scripts/render_markdown_pdf.py output/<paper-note-folder>/<paper-note-folder>.md \
+  --out output/<paper-note-folder>/<paper-note-folder>.pdf
+python <skill-dir>/scripts/render_markdown_pdf.py output/<paper-note-folder>/<paper-note-folder>.md \
+  --page-size letter --margin 48
 ```
 
 ## Quality Bar

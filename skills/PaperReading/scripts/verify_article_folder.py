@@ -55,6 +55,7 @@ class CheckReport:
     image_refs: list[str] = field(default_factory=list)
     final_images: list[str] = field(default_factory=list)
     has_pdf: bool = False
+    has_article_pdf: bool = False
     has_code_dir: bool = False
     has_audit: bool = False
 
@@ -211,6 +212,10 @@ def verify(folder: Path) -> CheckReport:
     report.has_pdf = (folder / "paper.pdf").exists()
     if not report.has_pdf:
         report.errors.append("Missing paper.pdf")
+    article_pdf = folder / f"{folder.name}.pdf"
+    report.has_article_pdf = article_pdf.exists()
+    if not report.has_article_pdf:
+        report.errors.append(f"Missing rendered article PDF: {article_pdf.name}")
 
     img_dir = folder / "img"
     if not img_dir.exists():
@@ -224,6 +229,12 @@ def verify(folder: Path) -> CheckReport:
     report.has_code_dir = (folder / "code").exists()
 
     text = md.read_text(encoding="utf-8")
+    if report.has_article_pdf:
+        try:
+            if article_pdf.stat().st_mtime < md.stat().st_mtime:
+                report.warnings.append("Rendered article PDF is older than the Markdown file; regenerate it")
+        except OSError:
+            pass
     for line in missing_metadata_lines(text):
         report.errors.append(f"Missing required opening metadata line: {line}")
 
@@ -279,6 +290,7 @@ def main() -> int:
             print(f"WARNING: {warning}", file=sys.stderr)
         print(f"markdown: {report.markdown}")
         print(f"paper.pdf: {report.has_pdf}")
+        print(f"article pdf: {report.has_article_pdf}")
         print(f"image refs: {len(report.image_refs)}")
         print(f"final images: {len(report.final_images)}")
         print(f"image audit: {report.has_audit}")

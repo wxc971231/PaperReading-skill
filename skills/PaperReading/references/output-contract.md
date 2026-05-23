@@ -8,6 +8,7 @@ For each paper, create:
 output/
   <article-folder>/
     <article-folder>.md
+    <article-folder>.pdf       # rendered article PDF generated from the Markdown
     paper.pdf
     img/
       img_001.png
@@ -35,7 +36,9 @@ If a code repository exists, clone or download it under `code/`. Preserve the re
 
 ## Markdown Rules
 
-The Markdown is Typora-first:
+The Markdown is Typora-first and is the source of truth. After finalizing it, generate a same-basename article PDF beside it. This rendered PDF is for reading/sharing and must reflect the Markdown content, including referenced figures.
+
+The Markdown rules are:
 
 - No YAML front matter.
 - No Hexo metadata.
@@ -49,6 +52,16 @@ The Markdown is Typora-first:
 - In `## 4.1 伪代码`, include relatively detailed Chinese comments that explain the major algorithmic steps.
 - In `## 4.2 工程技巧`, every bullet must include a compact code snippet extracted or distilled from the source repository. Use `...` to omit unrelated middle lines when needed. Every snippet must include Chinese comments explaining the engineering idea.
 - If OpenReview exists, include a numbered `Review意见` subsection in the summary. If OpenReview does not exist, omit the subsection.
+
+The rendered article PDF rules are:
+
+- Name it `<article-folder>.pdf`, exactly matching the Markdown basename.
+- Keep it next to the Markdown file, not under `img/` and not replacing `paper.pdf`.
+- Generate it from the final Markdown with `scripts/render_markdown_pdf.py` unless the user explicitly requests another renderer.
+- The preferred renderer is Pandoc + Typst. Keep `pandoc` and `typst` in PATH or under `.tools/md-pdf/bin`, and keep CJK fonts such as Noto Sans CJK SC under `.tools/md-pdf/fonts` when system fonts are incomplete.
+- It must include the same headings, body text, tables, code snippets, rendered formulas, and all Markdown-referenced images.
+- A PyMuPDF fallback PDF that shows raw LaTeX, missing CJK glyphs, or thumbnail-sized figures does not satisfy this contract when Pandoc + Typst can be made available.
+- If the Markdown changes after rendering, regenerate the PDF before final verification.
 
 The article must follow this exact section skeleton. Do not replace it with free-form headings such as `基本信息`, `关键实验发现`, or `我的理解`.
 
@@ -90,6 +103,7 @@ Use these defaults:
 
 - Article folder name equals the sanitized official paper title from the latest available paper version. Remove Windows-invalid characters (`<>:"/\|?*`), collapse whitespace, and trim trailing dots/spaces.
 - Main Markdown file name equals the folder name plus `.md`.
+- Rendered article PDF file name equals the folder name plus `.pdf`.
 - Original PDF is `paper.pdf`.
 - Article images are sequential, usually `img_001.png`, `img_002.png`, ... Use `.svg` only when the downstream converter/rendering pipeline supports SVG reliably.
 - Temporary extracted images may live under `img/raw/`, but final references should use images directly under `img/`.
@@ -111,21 +125,23 @@ Before finishing:
 1. Check the generated article folder is directly under `<project-root>/output/`.
 2. Check the folder name and Markdown filename use the sanitized latest-version paper title.
 3. Check the paper PDF is the latest public version found, or that a user-requested/local non-latest version is explicitly noted.
-4. Check all Markdown image references point to existing files.
-5. Check all final images are named sequentially.
-6. Check `img/audit.md` exists when final images are referenced, and every referenced `img/img_*` appears in the audit log.
-7. Check the article begins with the paper information block, not YAML.
-8. Check the article contains at least one meaningful figure unless the source paper has no suitable visual material and no diagram is useful.
-9. Check the original PDF exists as `paper.pdf`.
-10. Check OpenReview was searched; include the link and numbered `Review意见` summary only when found.
-11. If code exists, check the repository is present under `code/` and the article includes `代码分析`, `伪代码`, and `工程技巧`.
-12. Check `项目页` is not used for OpenReview; OpenReview has its own line.
-13. For a normal full paper, check the article is not only an outline: it should satisfy `references/depth-rubric.md` and should not have only 1-3 figures when the PDF contains many useful figures.
-14. Check the generated article folder is under `output/` and outside the skill directory.
-15. If figure extraction produced only full-page renders, check that `scripts/crop_pdf_regions.py` was used to create final cropped `img_*.png` files.
-16. Audit every final image for completeness, resolution, and caption/prose leakage. This audit is Codex's responsibility: inspect the final images against the PDF/source candidates, re-crop with `--dpi 360 --caption auto --trim` when figures are incomplete or captions remain, then re-audit the replacement.
+4. Check the rendered article PDF exists as `<article-folder>.pdf` and is not older than the Markdown.
+5. Check all Markdown image references point to existing files.
+6. Check all final images are named sequentially.
+7. Check `img/audit.md` exists when final images are referenced, and every referenced `img/img_*` appears in the audit log.
+8. Check the article begins with the paper information block, not YAML.
+9. Check the article contains at least one meaningful figure unless the source paper has no suitable visual material and no diagram is useful.
+10. Check the original PDF exists as `paper.pdf`.
+11. Check OpenReview was searched; include the link and numbered `Review意见` summary only when found.
+12. If code exists, check the repository is present under `code/` and the article includes `代码分析`, `伪代码`, and `工程技巧`.
+13. Check `项目页` is not used for OpenReview; OpenReview has its own line.
+14. For a normal full paper, check the article is not only an outline: it should satisfy `references/depth-rubric.md` and should not have only 1-3 figures when the PDF contains many useful figures.
+15. Check the generated article folder is under `output/` and outside the skill directory.
+16. If figure extraction produced only full-page renders, check that `scripts/crop_pdf_regions.py` was used to create final cropped `img_*.png` files.
+17. Audit every final image for completeness, resolution, and caption/prose leakage. This audit is Codex's responsibility: inspect the final images against the PDF/source candidates, re-crop with `--dpi 360 --caption auto --trim` when figures are incomplete or captions remain, then re-audit the replacement.
     - For result and ablation tables, the crop must include the rows that support the article's claims, including the proposed method and key baselines. A visually clean but semantically incomplete table is not acceptable.
     - For multi-panel figures, the crop must include every panel referenced in the explanation, plus legends, axes, and labels needed to understand the result.
-17. Spot-check Markdown rendering around images, formulas, blockquotes, tables, and code fences; subordinate blocks should be indented under the relevant `-` item.
-18. If `scripts/detect_pdf_visuals.py` was used, inspect `img/candidates/contact_sheet.png` and `manifest.csv`; final referenced images should be selected crops, not unreviewed candidates.
-19. Run `scripts/verify_article_folder.py output/<article-folder>` and fix errors before finalizing.
+18. Spot-check Markdown rendering around images, formulas, blockquotes, tables, and code fences; subordinate blocks should be indented under the relevant `-` item.
+19. Spot-check the rendered article PDF, preferably the first page and one image-heavy page, to ensure text and images are readable and current.
+20. If `scripts/detect_pdf_visuals.py` was used, inspect `img/candidates/contact_sheet.png` and `manifest.csv`; final referenced images should be selected crops, not unreviewed candidates.
+21. Run `scripts/verify_article_folder.py output/<article-folder>` and fix errors before finalizing.

@@ -4,7 +4,7 @@
 - 代码：https://github.com/wmn-231314/diffusion-data-constraint
 - 项目页：https://diffusion-scaling.github.io/
 - OpenReview：https://openreview.net/forum?id=W5Ht05jF4c
-- 发表：NeurIPS 2025 Poster。本文使用 OpenReview / NeurIPS camera-ready PDF；arXiv 最新公开版本为 v7，提交日期为 2025-10-26。
+- 发表：NeurIPS 2025 Poster。本文使用 OpenReview / NeurIPS camera-ready PDF；OpenReview Published: 2025-09-18，Last Modified: 2026-04-21；arXiv 最新公开版本为 v7，提交日期为 2025-10-26。
 - 领域：Diffusion language model、autoregressive language model、data-constrained scaling law、语言模型预训练
 - 一句话总结：当唯一训练数据有限但 compute 还能继续投入时，masked diffusion language model 比 autoregressive model 更能利用重复数据；超过临界计算量后，diffusion 会在验证损失和多数下游任务上反超 AR。
 -------
@@ -317,16 +317,31 @@ def diffusion_loss(model, batch):
 
 ## 5.2 Review意见
 
-OpenReview 最终决策是 Accept (poster)。评审整体认可论文问题重要、实验规模大、结论有启发性，尤其认可它指出了 masked diffusion model 在数据受限场景中可能优于 AR。
+OpenReview notes API 返回了 4 条 official review、8 条作者 rebuttal / acknowledgement，以及 8 条讨论 comment。最终决策是 **Accept (poster)**；四位 reviewer 的最终分数为 5、4、4、5。Program Chairs 的总结大意是：论文系统比较 MDM 和 ARM 在数据受限、多 epoch 重复训练场景下的 scaling 行为，发现 MDM 在有限 unique token 下能获得更低 validation loss 和更好下游表现；优点是实验覆盖多个模型规模和数据规模，给出了临界 compute 的解析缩放律，但外推到更大 unique-token regime、loss 可比性和效率/延迟权衡仍是限制。
 
-主要质疑包括：
+评审认可的点比较一致：
 
-- 技术新颖性更多来自系统实验和缩放律分析，而不是新模型或新算法。
-- AR 的 exact NLL 与 diffusion 的 upper-bound / Monte Carlo loss 是否完全可比。
-- C4 子集和当前模型规模是否足以支持向更大规模真实预训练外推。
-- 是否需要更多数据集、更多模型结构和更多 human-judgment 任务来验证泛化性。
+- **问题设定有价值**：Reviewer 5KGy 和 WHBh 都认为，找到一个 MDM 明确优于 ARM 的资源区间，对理解 diffusion language model 的适用边界很有意义。
+- **实验规模足够支撑主张**：Reviewer 43Rm 强调作者训练了大量模型，横跨数据量、模型规模和 epoch；Reviewer WHBh 也认可 scaling law 分析细致。
+- **结论有实践启发**：评审普遍接受“AR 低 compute 更强，MDM 在数据少但 compute 多时更强”的条件化结论，而不是把它误读成 diffusion 全面胜出。
 
-作者在 rebuttal 和 camera-ready 中补充了下游任务、500M unique token、学习率探索和 token ordering 控制实验。最终评审分数包括 5、5、4、4，说明论文仍有争议，但实验和问题设定足够有说服力。
+主要质疑集中在五类：
+
+- **外推范围**：Reviewer 5KGy 认为 25M/50M/100M unique tokens 可能过小，担心结果不能直接外推到更大数据规模；WHBh 也觉得“只在 100M 或更少 unique tokens 显著受益”略显保守。
+- **技术新颖性**：Reviewer u7Lw 指出方法本身基本沿用已有 AR scaling-law 研究，创新更多是经验性发现和系统实验，而非新算法。
+- **理论表述严谨性**：Reviewer u7Lw 认为 AR 和 MDM factorization 的写法不够严格，容易和 any-order AR 混淆。
+- **loss 可比性和优化设置**：Reviewer 5KGy 问到 MDM loss 是否缺少 scaling factor、NLL/PPL 为什么看起来较高；Reviewer 43Rm 也希望确认 ARM 换优化器或学习率后是否仍处劣势。
+- **泛化验证**：Reviewer 43Rm 要求更多数据集、模型架构和 human-judgment task；这对应本文最大 caveat：C4 + GPT-style Transformer 上的规律，未必自动转移到所有语料和架构。
+
+作者 rebuttal 里补了不少关键实验，这也是文章最终被接收的重要原因：
+
+- **500M unique token**：作者补充更大 unique-token 设置，说明在 500M 下仍观察到 MDM 在足够 compute 后超过 ARM。
+- **SlimPajama 和 T5 方向**：作者说明正在/已经补充更高信息密度数据集 SlimPajama，以及 encoder-decoder T5 架构上的验证，用来回应“只在 C4/GPT-style 上成立”的担忧。
+- **token ordering 控制实验**：作者补做 AR with \(N\) random orderings，发现随机 ordering 数量增加会显著改善 AR，并接近 diffusion，强化了“MDM 的优势来自多 token ordering / 隐式数据增强”这个解释。
+- **学习率探索**：作者报告提高 MDM learning rate 不能消除其低 compute 区间的 compute inefficiency，AR 在低预算下仍有更好的 compute-loss tradeoff。
+- **下游任务**：作者加入 downstream evaluation，缓解了“validation loss 差异是否只是估计目标不同”的质疑。
+
+我觉得这组 review 很好地把论文边界框出来了：**它的贡献是把 MDM 的优势定位到 data-constrained + high-compute 的资源区间，并用大规模 controlled experiments 支撑这个判断；但它还不是一个通用的预训练范式替代宣言**。真正决定后续影响力的，会是这条 critical compute curve 在更大语料、更大模型、代码/多语言/专业文本以及真实推理延迟约束下是否仍然成立。
 
 ## 5.3 未来展望
 

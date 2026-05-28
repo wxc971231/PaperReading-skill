@@ -132,7 +132,7 @@ Before finishing:
 8. Check the article begins with the paper information block, not YAML.
 9. Check the article contains at least one meaningful figure unless the source paper has no suitable visual material and no diagram is useful.
 10. Check the original PDF exists as `paper.pdf`.
-11. Check OpenReview was searched; include the link and numbered `Review意见` summary only when found.
+11. Check OpenReview was searched; when a forum URL/id is found, inspect `scripts/fetch_openreview_notes.py` output or an equivalent OpenReview notes API response before deciding whether public reviews/rebuttals are absent. Include the link and numbered `Review意见` summary when public official reviews or rebuttals are returned.
 12. If code exists, check the repository is present under `code/` and the article includes `代码分析`, `伪代码`, and `工程技巧`.
 13. Check `项目页` is not used for OpenReview; OpenReview has its own line.
 14. For a normal full paper, check the article is not only an outline: it should satisfy `references/depth-rubric.md` and should not have only 1-3 figures when the PDF contains many useful figures.

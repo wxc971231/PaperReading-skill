@@ -308,7 +308,7 @@ If OpenReview is found, summarize:
 - Author rebuttal or revision response.
 - For empirical papers, specifically check whether reviewers discuss benchmark correctness, data leakage, tool or dataset dependence, open-source completeness, statistical significance, compute cost, missing ablations, or novelty relative to adjacent method families.
 
-Keep this section concise and neutral. If OpenReview is not found, omit this subsection and do not infer reviewer opinions.
+Use `scripts/fetch_openreview_notes.py` for OpenReview forum pages before deciding whether reviews are public; the visible webpage can show only metadata while official reviews and rebuttals are loaded through the notes API. Save the JSON/Markdown extraction in the article folder when useful. Keep this section concise and neutral. If OpenReview is not found, or the OpenReview notes API returns no public official reviews, omit this subsection and do not infer reviewer opinions.
 
 ### 未来展望
 

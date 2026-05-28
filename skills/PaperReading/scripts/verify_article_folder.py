@@ -44,6 +44,11 @@ OPENREVIEW_ABSENT_RE = re.compile(
     r"- OpenReview：\s*(?:无|暂无|未找到|没有|无公开|未检索到|N/A|None)",
     re.I,
 )
+OPENREVIEW_UNREAD_REVIEWS_RE = re.compile(
+    r"(?:OpenReview|公开页面).{0,80}(?:未展示|没有展示|看不到|不可见).{0,80}(?:reviewer|review|审稿|rebuttal|打分|意见)"
+    r"|不推断具体审稿人观点",
+    re.I | re.S,
+)
 
 
 @dataclass
@@ -141,6 +146,14 @@ def abstract_warnings(text: str) -> list[str]:
     if len(abstract) < 180:
         warnings.append("摘要 looks too short for a full-paper abstract translation")
     return warnings
+
+
+def openreview_warnings(text: str, has_openreview: bool) -> list[str]:
+    if has_openreview and OPENREVIEW_UNREAD_REVIEWS_RE.search(text):
+        return [
+            "Article says OpenReview reviews/rebuttals are not visible; verify with scripts/fetch_openreview_notes.py before making this claim"
+        ]
+    return []
 
 
 def formula_format_errors(text: str) -> list[str]:
@@ -245,6 +258,7 @@ def verify(folder: Path) -> CheckReport:
     report.errors.extend(engineering_snippet_errors(text))
     report.errors.extend(code_analysis_comment_errors(text))
     report.warnings.extend(abstract_warnings(text))
+    report.warnings.extend(openreview_warnings(text, has_openreview))
 
     for name, pattern in FORBIDDEN_PATTERNS.items():
         if pattern.search(text):
